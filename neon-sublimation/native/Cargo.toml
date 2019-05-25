@@ -1,0 +1,17 @@
+[package]
+name = "neon-sublimation"
+version = "0.1.0"
+authors = ["A.W. Stanley <aws@reversing.space>"]
+license = "Zlib"
+build = "build.rs"
+exclude = ["artifacts.json", "index.node"]
+
+[lib]
+name = "neon_sublimation"
+crate-type = ["dylib"]
+
+[build-dependencies]
+neon-build = "0.2.0"
+
+[dependencies]
+neon = "0.2.0"

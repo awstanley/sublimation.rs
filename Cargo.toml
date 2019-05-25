@@ -1,0 +1,11 @@
+[package]
+name = "sublimation"
+version = "0.1.0"
+authors = ["A.W. Stanley <aws@sysfunc.net>"]
+edition = "2018"
+
+[workspace]
+members = [
+    ".",
+    "./neon-sublimation/native",
+]

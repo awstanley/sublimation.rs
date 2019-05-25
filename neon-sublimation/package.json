@@ -1,0 +1,14 @@
+{
+  "name": "neon-sublimation",
+  "version": "0.1.0",
+  "description": "",
+  "main": "lib/index.js",
+  "author": "A.W. Stanley <aws@reversing.space>",
+  "license": "Zlib",
+  "dependencies": {
+    "neon-cli": "^0.2.0"
+  },
+  "scripts": {
+    "install": "neon build"
+  }
+}
