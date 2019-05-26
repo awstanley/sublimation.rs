@@ -152,7 +152,7 @@ pub fn get_application_directory(steamapps: CVOID, appid: AppId) -> Option<Vec<u
     if size == 0 {
         None
     } else {
-        Some(Vec::from(&buffer[0..(size-1) as usize]))
+        Some(Vec::from(&buffer[0..size as usize]))
     }
 }
 
