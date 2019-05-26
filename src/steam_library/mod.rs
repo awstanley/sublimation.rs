@@ -65,26 +65,24 @@ extern "C" fn dummmy_steamapi_isteamclient_releaseuser(_context_init_data: CVOID
 pub (crate) static mut C_STEAMAPI_ISTEAMCLIENT_RELEASEUSER: extern "C" fn(context_init_data: CVOID, pipe: HSteamPipe, user: HSteamUser) = dummmy_steamapi_isteamclient_releaseuser;
 
 // void* SteamInternal_CreateInterface( const char *ver );
+#[cfg(feature = "extremely-lowlevel-steam")]
 extern "C" fn dummy_steaminternal_createinterface(_version: *const u8) -> CVOID {
     0 as CVOID
 }
+#[cfg(feature = "extremely-lowlevel-steam")]
 pub (crate) static mut C_STEAMINTERNAL_CREATEINTERFACE: extern "C" fn(version: *const u8) -> CVOID = dummy_steaminternal_createinterface;
 
+#[cfg(feature = "extremely-lowlevel-steam")]
 extern "C" fn dummy_steaminternal_findorcreateuserinterface(_steam_user: HSteamUser, _version: *const u8) -> CVOID {
     0 as CVOID
 }
+// void* SteamInternal_FindOrCreateUserInterface( HSteamUser hSteamUser, const char *pszVersion );
+#[cfg(feature = "extremely-lowlevel-steam")]
+pub (crate) static mut C_STEAMINTERNAL_FINDORCREATEUSERINTERFACE: extern "C" fn(steam_user: HSteamUser, _version: *const u8) -> CVOID = dummy_steaminternal_findorcreateuserinterface;
 
 // void SteamAPI_ReleaseCurrentThreadMemory();
 pub (crate) static mut C_STEAMAPI_RELEASECURRENTTHREADMEMORY: extern "C" fn() = dummy_unused_nargs_noret;
-
-
-/// `SteamAPI_ReleaseCurrentThreadMemory`
-pub fn release_current_thread_memory() {
-    unsafe { C_STEAMAPI_RELEASECURRENTTHREADMEMORY() };
-}
-
-// void* SteamInternal_FindOrCreateUserInterface( HSteamUser hSteamUser, const char *pszVersion );
-pub (crate) static mut C_STEAMINTERNAL_FINDORCREATEUSERINTERFACE: extern "C" fn(steam_user: HSteamUser, _version: *const u8) -> CVOID = dummy_steaminternal_findorcreateuserinterface;
+pub fn release_current_thread_memory() { unsafe { C_STEAMAPI_RELEASECURRENTTHREADMEMORY() }; }
 
 // HSteamUser SteamAPI_GetHSteamUser()
 pub (crate) static mut C_STEAMAPI_GETHSTEAMUSER: extern "C" fn() -> HSteamUser = dummy_get_steamuser;
@@ -154,7 +152,7 @@ pub fn get_application_directory(steamapps: CVOID, appid: AppId) -> Option<Vec<u
     if size == 0 {
         None
     } else {
-        Some(Vec::from(&buffer[0..size as usize]))
+        Some(Vec::from(&buffer[0..(size-1) as usize]))
     }
 }
 

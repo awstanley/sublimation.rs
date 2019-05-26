@@ -1,5 +1,5 @@
 [package]
-name = "neon-sublimation"
+name = "sublimation-livewire"
 version = "0.1.0"
 authors = ["A.W. Stanley <aws@reversing.space>"]
 license = "Zlib"
@@ -7,11 +7,14 @@ build = "build.rs"
 exclude = ["artifacts.json", "index.node"]
 
 [lib]
-name = "neon_sublimation"
+name = "sublimation_livewire"
 crate-type = ["dylib"]
 
 [build-dependencies]
 neon-build = "0.2.0"
 
-[dependencies]
-neon = "0.2.0"
+[dependencies.neon]
+version = "0.2.0"
+
+[dependencies.sublimation]
+path = "../../"

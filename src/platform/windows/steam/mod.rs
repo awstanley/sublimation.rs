@@ -1,5 +1,8 @@
 //! Steam Library
 
+#![allow(non_camel_case_types)]
+#![allow(unused)]
+
 use crate::{
     steam_library::*,
 };
@@ -11,6 +14,21 @@ type BOOL = i32; // int
 type FARPROC = HANDLE;
 type LPCSTR = *const u8;
 type LPCWSTR = *const u16;
+
+// Registry
+type DWORD = u32;
+type HKEY = PVOID;
+type ACCESS_MASK = DWORD;
+type REGSAM = ACCESS_MASK;
+type PHKEY = *mut HKEY;
+type LONG = i32;
+type LPDWORD = *mut DWORD;
+type BYTE = u8;
+type LPBYTE = *mut BYTE;
+
+// DLL Directory work
+type PCWSTR = *const u16;
+type DLL_DIRECTORY_COOKIE = PVOID;
 
 //const FALSE: BOOL = 0;
 //const TRUE: BOOL = 1;
@@ -35,6 +53,37 @@ extern "system" {
     pub fn FreeLibrary(
         hLibModule: HMODULE,
     ) -> BOOL;
+
+    // Advapi32.dll ...
+
+    /// [RegOpenKeyExA](https://docs.microsoft.com/en-us/windows/desktop/api/winreg/nf-winreg-regopenkeyexa): Opens the specified registry key. Note that key names are not case sensitive.
+    /// To perform transacted registry operations on a key, call the RegOpenKeyTransacted function.
+    #[cfg(feature = "extremely-lowlevel-steam")]
+    pub fn RegOpenKeyExA(
+        hKey: HKEY, 
+        lpSubKey: LPCSTR, 
+        ulOptions: DWORD, 
+        samDesired: REGSAM, 
+        phkResult: PHKEY
+    ) -> LONG;
+
+    
+    /// [RegQueryValueExA](https://docs.microsoft.com/en-us/windows/desktop/api/winreg/nf-winreg-regqueryvalueexa): Retrieves the type and data for the specified value name associated with an open registry key.
+    /// To ensure that any string values (REG_SZ, REG_MULTI_SZ, and REG_EXPAND_SZ) returned are null-terminated, use the RegGetValue function.
+    #[cfg(feature = "extremely-lowlevel-steam")]
+    pub fn RegQueryValueExA(
+        hKey: HKEY, 
+        lpValueName: LPCSTR, 
+        lpReserved: LPDWORD, 
+        lpType: LPDWORD, 
+        lpData: LPBYTE, 
+        lpcbData: LPDWORD
+    ) -> LONG;
+
+    
+    /// [RegCloseKey](https://docs.microsoft.com/en-us/windows/desktop/api/winreg/nf-winreg-regclosekey): Closes a handle to the specified registry key.
+    #[cfg(feature = "extremely-lowlevel-steam")]
+    pub fn RegCloseKey(hKey: HKEY) -> LONG;
 }
 
 #[cfg(target_arch="x86")]
@@ -111,10 +160,83 @@ macro_rules! load_steamapi_function {
     }
 }
 
+#[cfg(feature = "extremely-lowlevel-steam")]
+#[inline(always)]
+pub (crate) unsafe fn registry_dll_fix() -> Option<String> {
+    let mut registry_key: HKEY = 0 as HKEY;
+    let open_key = RegOpenKeyExA(
+        2147483649 as HKEY, // HKEY_CURRENT_USER
+        "Software\\Valve\\Steam\0".as_ptr(),
+        0,
+        1,
+        &mut registry_key as PHKEY
+    );
+    
+    if open_key == 0 {
+        let mut buffer = [0u8; 4096];
+        let mut buffer_length = 4096 as DWORD;
+        RegQueryValueExA(
+            registry_key,
+            "SteamPath\0".as_ptr(),
+            core::ptr::null_mut(),
+            core::ptr::null_mut(),
+            buffer.as_mut_ptr(),
+            &mut buffer_length as *mut _
+        );
+        RegCloseKey(registry_key);
+
+        let output = String::from_utf8(Vec::from_raw_parts(
+            buffer.as_mut_ptr(),
+            buffer_length as usize,
+            buffer.len()
+        ));
+        
+        if output.is_err() {
+            None
+        } else {
+            Some(output)
+        }
+    } else {
+        println!("regsitry fix result: {}", open_key);
+        None
+    }
+}
+
+#[cfg(feature = "extremely-lowlevel-steam")]
+#[inline(always)]
+fn setup_library_client() -> bool {
+    let root = {
+        let root = registry_dll_fix();
+        if root.is_none() {
+            panic!("critical failure p0");
+        }
+        root.unwrap()
+    };
+
+    let mut dll_path: Vec<u16> = root.encode_utf16().collect();
+    dll_path.extend_from_slice(&STEAMCLIENT_DLL[..]);
+    C_STEAMCLIENT_DLL = LoadLibraryW(dll_path.as_ptr());
+    if C_STEAMCLIENT_DLL as usize == 0 {
+        println!("failed to load steamclient");
+        return false;
+    }
+}
+
+#[cfg(not(feature = "extremely-lowlevel-steam"))]
+#[inline(always)]
+fn setup_library_steampi_lowlevel() {}
+
+#[cfg(feature = "extremely-lowlevel-steam")]
+#[inline(always)]
+fn setup_library_steampi_lowlevel() {
+    load_steamapi_function!("SteamInternal_CreateInterface", C_STEAMINTERNAL_CREATEINTERFACE);
+    load_steamapi_function!("SteamInternal_FindOrCreateUserInterface", C_STEAMINTERNAL_FINDORCREATEUSERINTERFACE);
+}
+
 #[inline(always)]
 pub (crate) fn setup_library() -> bool {
     unsafe {
-
+        // Detect clean state.
         if C_STEAMAPI_DLL as usize == 0 {
             C_STEAMAPI_DLL = LoadLibraryW(STEAMWORKS_DLL.as_ptr());
             if C_STEAMAPI_DLL as usize == 0 {
@@ -127,8 +249,7 @@ pub (crate) fn setup_library() -> bool {
             load_steamapi_function!("SteamClient", C_STEAMCLIENT);
             load_steamapi_function!("SteamAPI_ISteamClient_BShutdownIfAllPipesClosed", C_STEAMAPI_ISTEAMCLIENT_BSHUTDOWNIFALLPIPESCLOSED);
 
-            load_steamapi_function!("SteamInternal_CreateInterface", C_STEAMINTERNAL_CREATEINTERFACE);
-            load_steamapi_function!("SteamInternal_FindOrCreateUserInterface", C_STEAMINTERNAL_FINDORCREATEUSERINTERFACE);
+            setup_library_steampi_lowlevel();
             load_steamapi_function!("SteamAPI_ReleaseCurrentThreadMemory", C_STEAMAPI_RELEASECURRENTTHREADMEMORY);
 
             load_steamapi_function!("SteamAPI_ISteamClient_CreateSteamPipe", C_STEAMAPI_ISTEAMCLIENT_CREATESTEAMPIPE);

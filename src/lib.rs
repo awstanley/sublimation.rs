@@ -44,7 +44,7 @@ mod test {
                 panic!("failed to init steam");
             }
 
-            let mut steam_client = steam_library::client::SteamClient::new()
+            let steam_client = steam_library::client::SteamClient::new()
                 .expect("failed to get client");
 
 
@@ -69,10 +69,8 @@ mod test {
             );
 
             if terminal {
-                //steam_client.shutdown();
                 env::set_var("SteamAppId", "");
                 steam_library::shutdown();
-                //steam_library::attempt_shutdown(steam_library::get_steamclient());
             } else {
                 env::set_var("SteamAppId", "");
                 steam_library::shutdown();
