@@ -4,6 +4,10 @@
 #[path="platform/windows/steam/mod.rs"]
 pub (crate) mod platform_library;
 
+#[cfg(target_os = "linux")]
+#[path="platform/linux/steam/mod.rs"]
+pub (crate) mod platform_library;
+
 pub (crate) type CVOID = *const core::ffi::c_void;
 pub (crate) mod dummy;
 pub (crate) type InterfaceFetcher = extern "C" fn(instance: *const core::ffi::c_void, user: HSteamUser, pipe: HSteamPipe, version: *const i8) -> CVOID;
@@ -31,8 +35,9 @@ mod test {
         use std::env;
         use super::*;
 
-        let test_app_id_0: AppId = 236870;
-        let test_app_id_1: AppId = 863550;
+        let test_app_id_0: AppId = 22000;
+        let test_app_id_1: AppId = 236870;
+        let test_app_id_2: AppId = 863550;
 
         if !setup_library() {
             panic!("failed to setup library");
@@ -78,7 +83,8 @@ mod test {
         }
 
         inner_test(test_app_id_0, false);
-        inner_test(test_app_id_1, true);
+        inner_test(test_app_id_1, false);
+        inner_test(test_app_id_2, true);
 
         steam_library::release_current_thread_memory();
 

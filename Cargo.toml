@@ -1,6 +1,6 @@
 [package]
 name = "sublimation"
-version = "0.0.1"
+version = "0.0.3"
 authors = ["A.W. Stanley <aws@sysfunc.net>"]
 edition = "2018"
 license = "Zlib"
